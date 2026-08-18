@@ -1,98 +1,60 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Job, JobStatus, Worker } from "@field-ops/contracts";
-import { JobCard, JobCardSkeleton } from "../components/jobs/JobCard";
+import { JobStatus, Worker } from "@field-ops/contracts";
 import { JobColumn } from "../components/jobs/JobColumn";
+import { JobList } from "../components/jobs/JobList";
 import { JobStatusBadge } from "../components/jobs/JobStatusBadge";
 import { PageShell } from "../components/layout/PageShell";
 import { Typography } from "../components/Typography";
-import { EmptyState, ErrorState } from "../components/ui/EmptyState";
+import { ErrorState } from "../components/ui/EmptyState";
 import { Select } from "../components/ui/Select";
-import { listJobs, listWorkers } from "../lib/api";
+import { useJobBoard } from "../hooks/useJobBoard";
+import { listWorkers } from "../lib/api";
 import { cn } from "../lib/cn";
 import { BOARD_STATUSES, STATUS_LABEL } from "../lib/status";
 
-const POLL_MS = 4000;
-
 type StatusFilter = "ALL" | JobStatus;
 
-function emptyBoard(): Record<JobStatus, Job[]> {
-  return {
-    ASSIGNED: [],
-    EN_ROUTE: [],
-    ON_SITE: [],
-    COMPLETED: [],
-    CANCELED: [],
-  };
+function loadedCountLabel(count: number, hasMore: boolean): string {
+  return hasMore ? `${count}+` : String(count);
 }
 
 export default function BoardPage() {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [workerId, setWorkerId] = useState("");
-  const [jobsByStatus, setJobsByStatus] = useState<Record<JobStatus, Job[]>>(emptyBoard);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  const [workerError, setWorkerError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
+  const { columns, loading, error, updatedAt, refresh, loadMore } = useJobBoard(workerId);
 
   const workerNameById = useMemo(
     () => Object.fromEntries(workers.map((worker) => [worker.id, worker.name])),
     [workers],
   );
 
-  useEffect(() => {
-    const controller = new AbortController();
-    listWorkers(controller.signal)
-      .then(setWorkers)
-      .catch((err: unknown) => {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        setError("We couldn't load workers right now.");
-      });
-    return () => controller.abort();
+  const loadWorkers = useCallback(async (signal?: AbortSignal) => {
+    try {
+      const nextWorkers = await listWorkers(signal);
+      setWorkers(nextWorkers);
+      setWorkerError(null);
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      setWorkerError("We couldn't load workers right now.");
+    }
   }, []);
 
-  const refresh = useCallback(
-    async (signal?: AbortSignal, silent = false) => {
-      if (!silent) setLoading(true);
-      try {
-        const entries = await Promise.all(
-          BOARD_STATUSES.map(async (status) => {
-            const jobs = await listJobs(
-              { status, workerId: workerId || undefined, limit: 50 },
-              signal,
-            );
-            return [status, jobs] as const;
-          }),
-        );
-        setJobsByStatus(Object.fromEntries(entries) as Record<JobStatus, Job[]>);
-        setError(null);
-        setUpdatedAt(new Date());
-      } catch (err: unknown) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        setError("We couldn't load the jobs right now.");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [workerId],
-  );
-
   useEffect(() => {
     const controller = new AbortController();
-    void refresh(controller.signal);
-    const timer = window.setInterval(() => {
-      void refresh(controller.signal, true);
-    }, POLL_MS);
-    return () => {
-      controller.abort();
-      window.clearInterval(timer);
-    };
-  }, [refresh]);
+    void loadWorkers(controller.signal);
+    return () => controller.abort();
+  }, [loadWorkers]);
 
   const visibleStatuses =
     statusFilter === "ALL" ? BOARD_STATUSES : BOARD_STATUSES.filter((status) => status === statusFilter);
   const filtered = Boolean(workerId);
+  const boardError = workerError ?? error;
+  const totalLoaded = BOARD_STATUSES.reduce((sum, status) => sum + columns[status].jobs.length, 0);
+  const hasMoreAnywhere = BOARD_STATUSES.some((status) => columns[status].nextCursor);
 
   return (
     <PageShell>
@@ -136,12 +98,15 @@ export default function BoardPage() {
         </div>
       </div>
 
-      {error ? (
+      {boardError ? (
         <div className="mt-4">
           <ErrorState
             title="Something went wrong"
-            description={error}
-            onRetry={() => void refresh()}
+            description={boardError}
+            onRetry={() => {
+              if (workerError) void loadWorkers();
+              void refresh();
+            }}
           />
         </div>
       ) : null}
@@ -151,7 +116,7 @@ export default function BoardPage() {
           <StatusChip
             label="All"
             active={statusFilter === "ALL"}
-            count={BOARD_STATUSES.reduce((sum, status) => sum + jobsByStatus[status].length, 0)}
+            countLabel={loadedCountLabel(totalLoaded, hasMoreAnywhere)}
             onClick={() => setStatusFilter("ALL")}
           />
           {BOARD_STATUSES.map((status) => (
@@ -159,58 +124,62 @@ export default function BoardPage() {
               key={status}
               label={STATUS_LABEL[status]}
               active={statusFilter === status}
-              count={jobsByStatus[status].length}
+              countLabel={loadedCountLabel(
+                columns[status].jobs.length,
+                Boolean(columns[status].nextCursor),
+              )}
               onClick={() => setStatusFilter(status)}
             />
           ))}
         </div>
         <div className="mt-3 space-y-5">
-          {visibleStatuses.map((status) => (
-            <section key={status}>
-              <div className="mb-2 flex items-center justify-between">
-                <JobStatusBadge status={status} />
-                <Typography variant="small" className="font-semibold text-ink">
-                  {jobsByStatus[status].length}
-                </Typography>
-              </div>
-              <div className="space-y-2">
-                {loading && jobsByStatus[status].length === 0
-                  ? [0, 1].map((key) => <JobCardSkeleton key={key} />)
-                  : null}
-                {!loading && jobsByStatus[status].length === 0 ? (
-                  <EmptyState
-                    title={`No ${STATUS_LABEL[status].toLowerCase()} jobs`}
-                    description={
-                      filtered
-                        ? "No jobs match the selected worker."
-                        : "There are currently no jobs in this status."
-                    }
+          {visibleStatuses.map((status) => {
+            const column = columns[status];
+            return (
+              <section key={status}>
+                <div className="mb-2 flex items-center justify-between">
+                  <JobStatusBadge status={status} />
+                  <Typography variant="small" className="font-semibold text-ink">
+                    {loadedCountLabel(column.jobs.length, Boolean(column.nextCursor))}
+                  </Typography>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <JobList
+                    status={status}
+                    jobs={column.jobs}
+                    workerNameById={workerNameById}
+                    loading={loading}
+                    filtered={filtered}
+                    nextCursor={column.nextCursor}
+                    loadingMore={column.loadingMore}
+                    onLoadMore={() => void loadMore(status)}
+                    loadMoreError={column.loadMoreError}
                   />
-                ) : null}
-                {jobsByStatus[status].map((job) => (
-                  <JobCard
-                    key={job.id}
-                    job={job}
-                    workerName={workerNameById[job.workerId] ?? "Unknown worker"}
-                  />
-                ))}
-              </div>
-            </section>
-          ))}
+                </div>
+              </section>
+            );
+          })}
         </div>
       </div>
 
       <div className="mt-4 hidden grid-cols-5 gap-3 lg:grid">
-        {BOARD_STATUSES.map((status) => (
-          <JobColumn
-            key={status}
-            status={status}
-            jobs={jobsByStatus[status]}
-            workerNameById={workerNameById}
-            loading={loading}
-            filtered={filtered}
-          />
-        ))}
+        {BOARD_STATUSES.map((status) => {
+          const column = columns[status];
+          return (
+            <JobColumn
+              key={status}
+              status={status}
+              jobs={column.jobs}
+              workerNameById={workerNameById}
+              loading={loading}
+              filtered={filtered}
+              nextCursor={column.nextCursor}
+              loadingMore={column.loadingMore}
+              onLoadMore={() => void loadMore(status)}
+              loadMoreError={column.loadMoreError}
+            />
+          );
+        })}
       </div>
     </PageShell>
   );
@@ -218,12 +187,12 @@ export default function BoardPage() {
 
 function StatusChip({
   label,
-  count,
+  countLabel,
   active,
   onClick,
 }: {
   label: string;
-  count: number;
+  countLabel: string;
   active: boolean;
   onClick: () => void;
 }) {
@@ -240,7 +209,7 @@ function StatusChip({
     >
       <Typography variant="button">{label}</Typography>
       <Typography variant="small" className={active ? "text-on-primary" : undefined}>
-        {count}
+        {countLabel}
       </Typography>
     </button>
   );

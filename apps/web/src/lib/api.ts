@@ -1,6 +1,5 @@
 import {
   CreateJobRequest,
-  Job,
   JobStatus,
   JobWithEvents,
   ListJobsResponse,
@@ -55,16 +54,21 @@ export async function listWorkers(signal?: AbortSignal): Promise<Worker[]> {
 }
 
 export async function listJobs(
-  params: { workerId?: string; status?: JobStatus; limit?: number },
+  params: {
+    workerId?: string;
+    status?: JobStatus;
+    limit?: number;
+    cursor?: string;
+  },
   signal?: AbortSignal,
-): Promise<Job[]> {
+): Promise<ListJobsResponse> {
   const search = new URLSearchParams();
   if (params.workerId) search.set("workerId", params.workerId);
   if (params.status) search.set("status", params.status);
-  search.set("limit", String(params.limit ?? 50));
+  search.set("limit", String(params.limit ?? 20));
+  if (params.cursor) search.set("cursor", params.cursor);
   const response = await apiFetch(`/jobs?${search.toString()}`, { signal });
-  const body = await parseJson<ListJobsResponse>(response);
-  return body.data;
+  return parseJson<ListJobsResponse>(response);
 }
 
 export async function getJob(id: string, signal?: AbortSignal): Promise<JobWithEvents> {
