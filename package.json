@@ -1,0 +1,20 @@
+{
+  "name": "field-ops-job-tracker",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "db:up": "docker compose up -d postgres",
+    "db:down": "docker compose down",
+    "migrate": "npm run migrate -w @field-ops/api",
+    "seed": "npm run seed -w @field-ops/api",
+    "dev:api": "npm run dev -w @field-ops/api",
+    "dev:web": "npm run dev -w @field-ops/web",
+    "test": "npm test -w @field-ops/api"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
