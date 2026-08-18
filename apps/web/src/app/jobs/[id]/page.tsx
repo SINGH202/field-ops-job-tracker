@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { JobStatus, JobWithEvents } from "@field-ops/contracts";
+import { forwardTarget, JobStatus, JobWithEvents } from "@field-ops/contracts";
 import { JobStatusBadge } from "../../../components/jobs/JobStatusBadge";
 import { JobTimeline } from "../../../components/jobs/JobTimeline";
 import { PageShell } from "../../../components/layout/PageShell";
@@ -14,7 +14,7 @@ import { ErrorState } from "../../../components/ui/EmptyState";
 import { Input } from "../../../components/ui/Input";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { ApiError, getJob, listWorkers, transitionJob } from "../../../lib/api";
-import { formatTimestamp, nextStatus, nextStatusLabel } from "../../../lib/status";
+import { formatTimestamp, nextStatusLabel } from "../../../lib/status";
 
 const DISPATCHER_ID = "dispatcher-1";
 
@@ -92,7 +92,7 @@ export default function JobDetailPage() {
     );
   }
 
-  const upcoming = nextStatus(job.status);
+  const upcoming = forwardTarget(job.status);
   const upcomingLabel = nextStatusLabel(job.status);
   const canAct = job.status !== "COMPLETED" && job.status !== "CANCELED";
 

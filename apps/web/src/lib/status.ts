@@ -1,4 +1,4 @@
-import { JOB_STATUSES, JobStatus } from "@field-ops/contracts";
+import { JOB_STATUSES, JobStatus, forwardTarget } from "@field-ops/contracts";
 
 export const STATUS_LABEL: Record<JobStatus, string> = {
   ASSIGNED: "Assigned",
@@ -50,27 +50,8 @@ export function formatRelativeTime(value: string, now = Date.now()): string {
   return `Updated ${formatTimestamp(value)}`;
 }
 
-export function nextStatus(status: JobStatus): JobStatus | null {
-  switch (status) {
-    case "ASSIGNED":
-      return "EN_ROUTE";
-    case "EN_ROUTE":
-      return "ON_SITE";
-    case "ON_SITE":
-      return "COMPLETED";
-    case "COMPLETED":
-      return null;
-    case "CANCELED":
-      return null;
-    default: {
-      const exhaustive: never = status;
-      return exhaustive;
-    }
-  }
-}
-
 export function nextStatusLabel(status: JobStatus): string | null {
-  const target = nextStatus(status);
+  const target = forwardTarget(status);
   if (!target) return null;
   switch (target) {
     case "EN_ROUTE":
