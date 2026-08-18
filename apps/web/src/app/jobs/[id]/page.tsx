@@ -1,18 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { JobStatus, JobWithEvents } from "@field-ops/contracts";
+import { JobStatusBadge } from "../../../components/jobs/JobStatusBadge";
+import { JobTimeline } from "../../../components/jobs/JobTimeline";
+import { PageShell } from "../../../components/layout/PageShell";
 import { Typography } from "../../../components/Typography";
+import { Button } from "../../../components/ui/Button";
+import { Card } from "../../../components/ui/Card";
+import { ErrorState } from "../../../components/ui/EmptyState";
+import { Input } from "../../../components/ui/Input";
+import { Skeleton } from "../../../components/ui/Skeleton";
 import { ApiError, getJob, listWorkers, transitionJob } from "../../../lib/api";
-import { STATUS_LABEL, formatTimestamp } from "../../../lib/status";
+import { formatTimestamp, nextStatus, nextStatusLabel } from "../../../lib/status";
 
 const DISPATCHER_ID = "dispatcher-1";
 
 export default function JobDetailPage() {
   const params = useParams<{ id: string }>();
   const [job, setJob] = useState<JobWithEvents | null>(null);
-  const [workerName, setWorkerName] = useState<string>("");
+  const [workerName, setWorkerName] = useState("");
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -23,7 +32,7 @@ export default function JobDetailPage() {
       .then(setJob)
       .catch((err: unknown) => {
         if (err instanceof DOMException && err.name === "AbortError") return;
-        setError(err instanceof Error ? err.message : "Failed to load job");
+        setError("We couldn't load this job right now.");
       });
     return () => controller.abort();
   }, [params.id]);
@@ -56,114 +65,127 @@ export default function JobDetailPage() {
       setJob(updated);
       setNote("");
     } catch (err: unknown) {
-      setError(err instanceof ApiError ? err.message : "Transition failed");
+      setError(err instanceof ApiError ? err.message : "That status change could not be saved.");
     } finally {
       setSubmitting(false);
     }
   }
 
   if (!job && !error) {
-    return <Typography variant="bodyMedium">Loading job…</Typography>;
+    return (
+      <PageShell>
+        <Skeleton className="h-4 w-28" />
+        <Skeleton className="mt-3 h-8 w-64" />
+        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+          <Skeleton className="h-64" />
+          <Skeleton className="h-64" />
+        </div>
+      </PageShell>
+    );
   }
 
   if (!job) {
     return (
-      <Typography variant="bodyMedium" className="error">
-        {error}
-      </Typography>
+      <PageShell>
+        <ErrorState title="Something went wrong" description={error ?? "Job not found."} />
+      </PageShell>
     );
   }
 
+  const upcoming = nextStatus(job.status);
+  const upcomingLabel = nextStatusLabel(job.status);
+  const canAct = job.status !== "COMPLETED" && job.status !== "CANCELED";
+
   return (
-    <div className="stack">
-      <div>
-        <Typography variant="h2">{job.title}</Typography>
-        <Typography variant="small" className={`badge badge-${job.status}`}>
-          {STATUS_LABEL[job.status]}
-        </Typography>
+    <PageShell>
+      <Link
+        href="/"
+        className="inline-flex min-h-11 items-center text-ink-secondary transition duration-150 ease-out hover:text-ink"
+      >
+        <Typography variant="link">Back to board</Typography>
+      </Link>
+
+      <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <Typography variant="h2" className="break-words">
+            {job.title}
+          </Typography>
+          <Typography variant="small" className="mt-1">
+            Updated {formatTimestamp(job.updatedAt)}
+          </Typography>
+        </div>
+        <JobStatusBadge status={job.status} />
       </div>
 
-      <div className="detail">
-        <section className="panel stack">
-          <Typography variant="h3">Job</Typography>
-          <Typography variant="bodyMedium">{job.description ?? "No description"}</Typography>
-          <Typography variant="small">Address: {job.address ?? "—"}</Typography>
-          <Typography variant="small">Worker: {workerName}</Typography>
-          <Typography variant="small">Updated {formatTimestamp(job.updatedAt)}</Typography>
+      <div className="mt-5 grid gap-4 lg:grid-cols-2">
+        <Card className="space-y-4">
+          <Typography variant="h3">Job information</Typography>
+          <Meta label="Address" value={job.address ?? "—"} />
+          <Meta label="Worker" value={workerName || "—"} />
+          <Meta label="Description" value={job.description ?? "No description"} />
 
-          {job.status !== "COMPLETED" && job.status !== "CANCELED" ? (
-            <>
-              <label className="field">
-                <Typography variant="small">Optional note</Typography>
-                <input
-                  value={note}
-                  onChange={(event) => setNote(event.target.value)}
-                  maxLength={1000}
-                />
-              </label>
-              <div className="form-actions">
-                {job.status === "ASSIGNED" ? (
-                  <button
-                    className="button button-primary"
+          {canAct ? (
+            <div className="space-y-3 border-t border-border pt-4">
+              <Input
+                id="note"
+                name="note"
+                label="Optional note"
+                value={note}
+                onChange={(event) => setNote(event.target.value)}
+                maxLength={1000}
+                placeholder="Visible on the status timeline"
+              />
+              <div className="flex flex-col gap-2 sm:flex-row">
+                {upcoming && upcomingLabel ? (
+                  <Button
                     disabled={submitting}
-                    onClick={() => void advance("EN_ROUTE")}
-                    type="button"
+                    onClick={() => void advance(upcoming)}
+                    className="sm:flex-1"
                   >
-                    <Typography variant="button">Mark en route</Typography>
-                  </button>
+                    {submitting ? "Updating…" : upcomingLabel}
+                  </Button>
                 ) : null}
-                {job.status === "EN_ROUTE" ? (
-                  <button
-                    className="button button-primary"
-                    disabled={submitting}
-                    onClick={() => void advance("ON_SITE")}
-                    type="button"
-                  >
-                    <Typography variant="button">Mark on site</Typography>
-                  </button>
-                ) : null}
-                {job.status === "ON_SITE" ? (
-                  <button
-                    className="button button-primary"
-                    disabled={submitting}
-                    onClick={() => void advance("COMPLETED")}
-                    type="button"
-                  >
-                    <Typography variant="button">Mark completed</Typography>
-                  </button>
-                ) : null}
-                <button
-                  className="button"
+                <Button
+                  variant="danger"
                   disabled={submitting}
                   onClick={() => void advance("CANCELED")}
-                  type="button"
+                  className="sm:flex-1"
                 >
-                  <Typography variant="button">Cancel job</Typography>
-                </button>
+                  Cancel job
+                </Button>
               </div>
-            </>
+            </div>
           ) : null}
 
           {error ? (
-            <Typography variant="bodyMedium" className="error">
-              {error}
-            </Typography>
+            <ErrorState title="Transition failed" description={error} />
           ) : null}
-        </section>
+        </Card>
 
-        <section className="panel">
-          <Typography variant="h3">Status timeline</Typography>
-          <ul className="timeline">
-            {job.events.map((event) => (
-              <Typography variant="li" key={event.id} className="timeline-item">
-                {STATUS_LABEL[event.toStatus]} · {event.actorType.toLowerCase()} {event.actorId} ·{" "}
-                {formatTimestamp(event.occurredAt)}
-                {event.note ? ` — ${event.note}` : ""}
-              </Typography>
-            ))}
-          </ul>
-        </section>
+        <Card>
+          <Typography variant="h3">Status history</Typography>
+          <div className="mt-4">
+            {job.events.length === 0 ? (
+              <Typography variant="small">No status events yet.</Typography>
+            ) : (
+              <JobTimeline events={job.events} />
+            )}
+          </div>
+        </Card>
       </div>
+    </PageShell>
+  );
+}
+
+function Meta({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <Typography variant="small" className="font-medium text-ink-muted">
+        {label}
+      </Typography>
+      <Typography variant="bodyMedium" className="mt-0.5 break-words">
+        {value}
+      </Typography>
     </div>
   );
 }

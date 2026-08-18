@@ -9,7 +9,7 @@ import {
   Worker,
 } from "@field-ops/contracts";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "/backend";
 
 export class ApiError extends Error {
   constructor(
@@ -22,9 +22,15 @@ export class ApiError extends Error {
 }
 
 async function parseJson<T>(response: Response): Promise<T> {
-  const body = (await response.json()) as T & {
+  const text = await response.text();
+  let body = {} as T & {
     error?: { code?: string; message?: string };
   };
+  if (text) {
+    body = JSON.parse(text) as T & {
+      error?: { code?: string; message?: string };
+    };
+  }
   if (!response.ok) {
     throw new ApiError(
       response.status,
@@ -35,8 +41,15 @@ async function parseJson<T>(response: Response): Promise<T> {
   return body;
 }
 
+function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  return fetch(`${API_URL}${path}`, {
+    ...init,
+    cache: "no-store",
+  });
+}
+
 export async function listWorkers(signal?: AbortSignal): Promise<Worker[]> {
-  const response = await fetch(`${API_URL}/workers`, { signal });
+  const response = await apiFetch("/workers", { signal });
   const body = await parseJson<ListWorkersResponse>(response);
   return body.data;
 }
@@ -49,18 +62,18 @@ export async function listJobs(
   if (params.workerId) search.set("workerId", params.workerId);
   if (params.status) search.set("status", params.status);
   search.set("limit", String(params.limit ?? 50));
-  const response = await fetch(`${API_URL}/jobs?${search.toString()}`, { signal });
+  const response = await apiFetch(`/jobs?${search.toString()}`, { signal });
   const body = await parseJson<ListJobsResponse>(response);
   return body.data;
 }
 
 export async function getJob(id: string, signal?: AbortSignal): Promise<JobWithEvents> {
-  const response = await fetch(`${API_URL}/jobs/${id}`, { signal });
+  const response = await apiFetch(`/jobs/${id}`, { signal });
   return parseJson<JobWithEvents>(response);
 }
 
 export async function createJob(body: CreateJobRequest): Promise<JobWithEvents> {
-  const response = await fetch(`${API_URL}/jobs`, {
+  const response = await apiFetch("/jobs", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -75,7 +88,7 @@ export async function transitionJob(
   jobId: string,
   body: TransitionJobRequest,
 ): Promise<JobWithEvents> {
-  const response = await fetch(`${API_URL}/jobs/${jobId}/transitions`, {
+  const response = await apiFetch(`/jobs/${jobId}/transitions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

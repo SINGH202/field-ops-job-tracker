@@ -26,7 +26,7 @@ In a second terminal, start the dispatcher web app:
 npm run dev:web
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000). On the create form, submit with **Create and assign** (the header **New job** link only navigates to the form). The web app proxies `/backend/*` to the API so browser calls stay same-origin.
 
 ### Backend without the API container
 

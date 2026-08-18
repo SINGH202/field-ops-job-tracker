@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { cn } from "../lib/cn";
 
 const VARIANT_TAGS = {
   h1: "h1",
@@ -12,24 +13,28 @@ const VARIANT_TAGS = {
 } as const;
 
 const VARIANT_CLASS: Record<keyof typeof VARIANT_TAGS, string> = {
-  h1: "type-h1",
-  h2: "type-h2",
-  h3: "type-h3",
-  bodyMedium: "type-body",
-  small: "type-small",
-  li: "type-li",
-  button: "type-button",
-  link: "type-link",
+  h1: "m-0 text-base font-bold tracking-tight text-ink sm:text-lg",
+  h2: "m-0 text-lg font-semibold tracking-tight text-ink sm:text-xl",
+  h3: "m-0 text-sm font-semibold text-ink",
+  bodyMedium: "m-0 text-sm leading-6 text-ink-secondary",
+  small: "m-0 text-xs leading-5 text-ink-muted",
+  li: "m-0 text-sm leading-6 text-ink-secondary",
+  button: "text-sm font-semibold",
+  link: "text-sm font-semibold",
 };
 
 type TypographyProps = {
   variant: keyof typeof VARIANT_TAGS;
   className?: string;
+  id?: string;
   children: ReactNode;
 };
 
-export function Typography({ variant, className, children }: TypographyProps) {
+export function Typography({ variant, className, id, children }: TypographyProps) {
   const Tag = VARIANT_TAGS[variant];
-  const classes = [VARIANT_CLASS[variant], className].filter(Boolean).join(" ");
-  return <Tag className={classes}>{children}</Tag>;
+  return (
+    <Tag id={id} className={cn(VARIANT_CLASS[variant], className)}>
+      {children}
+    </Tag>
+  );
 }
