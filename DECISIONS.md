@@ -25,7 +25,7 @@ Migrations are ordered SQL files applied once via `schema_migrations`. Schema is
 
 ## Lifecycle and idempotency
 
-Allowed edges live in `allowedTargets()` — a switch over `JobStatus` with a `never` default so a new status fails compilation until handled. Illegal transitions return `409 ILLEGAL_TRANSITION` and do not write an event. Same-status retries are no-ops: 200, no extra event. That covers a lost response where the client retries without the original key.
+Allowed edges live in `@field-ops/contracts` (`allowedTargets()` / `isLegalTransition()`) so the API and web app share one graph. The API wraps that in `assertLegalTransition()` and returns `409 ILLEGAL_TRANSITION`. Same-status retries are no-ops: 200, no extra event. That covers a lost response where the client retries without the original key.
 
 The write path, in one transaction:
 

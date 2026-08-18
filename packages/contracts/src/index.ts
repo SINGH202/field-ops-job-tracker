@@ -17,6 +17,14 @@ export type {
 } from "./models";
 
 export {
+  allowedTargets,
+  isTerminal,
+  isNoOpTransition,
+  isLegalTransition,
+  forwardTarget,
+} from "./lifecycle";
+
+export {
   CreateJobRequestSchema,
   TransitionJobRequestSchema,
   ListJobsQuerySchema,

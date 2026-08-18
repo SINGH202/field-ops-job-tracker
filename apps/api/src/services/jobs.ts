@@ -1,12 +1,13 @@
 import {
   CreateJobRequest,
+  isNoOpTransition,
   JobWithEvents,
   ListJobsQuery,
   TransitionJobRequest,
 } from "@field-ops/contracts";
 import { randomUUID } from "node:crypto";
 import { PoolClient } from "pg";
-import { assertLegalTransition, isNoOpTransition } from "../domain/lifecycle";
+import { assertLegalTransition } from "../domain/lifecycle";
 import { IdempotencyConflictError, NotFoundError, ValidationError } from "../errors";
 import { withTransaction } from "../db/pool";
 import { decodeCursor, encodeCursor, hashRequestBody } from "../http/codec";
