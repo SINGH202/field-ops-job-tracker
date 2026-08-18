@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import Link from "next/link";
+import { IBM_Plex_Sans } from "next/font/google";
+import { AppHeader } from "../components/layout/AppHeader";
 import "./globals.css";
-import { Typography } from "../components/Typography";
+
+const plex = IBM_Plex_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-ibm-plex-sans",
+});
 
 export const metadata: Metadata = {
   title: "Field Ops Job Tracker",
@@ -11,22 +17,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
-      <body>
-        <header className="topbar">
-          <Link href="/" className="topbar-brand">
-            <Typography variant="h1">Field Ops</Typography>
-          </Link>
-          <nav className="topbar-nav">
-            <Link href="/">
-              <Typography variant="link">Board</Typography>
-            </Link>
-            <Link href="/jobs/new" className="button button-primary">
-              <Typography variant="button">Create job</Typography>
-            </Link>
-          </nav>
-        </header>
-        <main className="page">{children}</main>
+    <html lang="en" className={plex.variable}>
+      <body className="font-sans antialiased">
+        <AppHeader />
+        <main>{children}</main>
       </body>
     </html>
   );

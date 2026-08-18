@@ -306,4 +306,14 @@ describe("GET /workers", () => {
       "Jordan Chen",
     ]);
   });
+
+  it("returns JSON even when the client sends If-None-Match", async () => {
+    const first = await request(app).get("/workers");
+    const res = await request(app)
+      .get("/workers")
+      .set("If-None-Match", first.headers.etag ?? 'W/"cached"');
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(2);
+  });
 });
