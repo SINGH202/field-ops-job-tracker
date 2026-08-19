@@ -10,6 +10,7 @@ import { PageShell } from "../../../components/layout/PageShell";
 import { Typography } from "../../../components/Typography";
 import { Button } from "../../../components/ui/Button";
 import { Card } from "../../../components/ui/Card";
+import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { ErrorState } from "../../../components/ui/EmptyState";
 import { Input } from "../../../components/ui/Input";
 import { Skeleton } from "../../../components/ui/Skeleton";
@@ -153,41 +154,15 @@ export default function JobDetailPage() {
                     {submitting ? "Updating…" : upcomingLabel}
                   </Button>
                 ) : null}
-                {confirmingCancel ? (
-                  <>
-                    <Button
-                      variant="danger"
-                      disabled={submitting}
-                      onClick={() => void advance("CANCELED")}
-                      className="sm:flex-1"
-                    >
-                      {submitting ? "Updating…" : "Confirm cancel"}
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      disabled={submitting}
-                      onClick={() => setConfirmingCancel(false)}
-                      className="sm:flex-1"
-                    >
-                      Keep job
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    variant="danger"
-                    disabled={submitting}
-                    onClick={() => setConfirmingCancel(true)}
-                    className="sm:flex-1"
-                  >
-                    Cancel job
-                  </Button>
-                )}
+                <Button
+                  variant="danger"
+                  disabled={submitting}
+                  onClick={() => setConfirmingCancel(true)}
+                  className="sm:flex-1"
+                >
+                  Cancel job
+                </Button>
               </div>
-              {confirmingCancel ? (
-                <Typography variant="small">
-                  Cancel this job? This cannot be undone.
-                </Typography>
-              ) : null}
             </div>
           ) : null}
 
@@ -207,6 +182,17 @@ export default function JobDetailPage() {
           </div>
         </Card>
       </div>
+
+      <ConfirmDialog
+        open={confirmingCancel}
+        title="Cancel this job?"
+        description={`${job.title} will move to Canceled. This cannot be undone.`}
+        busy={submitting}
+        onConfirm={() => void advance("CANCELED")}
+        onCancel={() => {
+          if (!submitting) setConfirmingCancel(false);
+        }}
+      />
     </PageShell>
   );
 }

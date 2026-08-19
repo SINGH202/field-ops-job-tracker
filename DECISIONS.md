@@ -44,6 +44,10 @@ Failed requests are not stored, so a validation error can be fixed and retried w
 
 Vitest hits the API against a separate `fieldops_test` database so seed data stays intact. Unit tests cover the lifecycle graph; API tests cover create, list/filter/pagination, illegal transitions, and idempotent retries (one event, not two).
 
+## Cancel confirmation
+
+Cancel is irreversible. The dispatcher board (drop onto Canceled), job detail, and worker app use the same in-app dialog (`Keep job` / `Cancel job`) instead of `window.confirm` or `Alert.alert`, so copy and actions stay consistent.
+
 ## What I left out
 
 **Offline / sync.** The Expo worker app is online-only: pick a seeded worker, see that worker's jobs, advance with an optional note. An outbox is the next cut, not this one.

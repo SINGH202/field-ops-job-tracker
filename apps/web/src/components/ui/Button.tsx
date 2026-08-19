@@ -12,20 +12,14 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: "bg-primary text-on-primary shadow hover:bg-primary-hover",
-        primary: "bg-primary text-on-primary shadow hover:bg-primary-hover",
-        destructive: "bg-danger text-on-primary shadow-sm hover:bg-danger-hover",
         danger: "bg-danger-soft text-danger shadow-sm hover:bg-danger hover:text-on-primary",
         outline:
           "border border-border bg-surface shadow-sm hover:bg-surface-muted hover:text-ink",
         secondary: "bg-surface-muted text-ink shadow-sm hover:bg-border",
         ghost: "text-ink-secondary hover:bg-surface-muted hover:text-ink",
-        link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
         default: "h-11 min-h-11 px-4 py-2",
-        sm: "h-8 rounded-md px-3 text-xs",
-        lg: "h-11 rounded-md px-8",
-        icon: "h-11 w-11",
       },
     },
     defaultVariants: {
@@ -69,5 +63,3 @@ export function Button({
     </Comp>
   );
 }
-
-export { buttonVariants };

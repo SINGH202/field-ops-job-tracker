@@ -5,18 +5,18 @@ import { Job, JobStatus } from "@field-ops/contracts";
 import { listJobs } from "../lib/api";
 import { BOARD_STATUSES } from "../lib/status";
 
-export const PAGE_SIZE = 20;
+const PAGE_SIZE = 20;
 const POLL_MS = 4000;
 const MAX_LIMIT = 100;
 
-export type BoardColumn = {
+type BoardColumn = {
   jobs: Job[];
   nextCursor: string | null;
   loadingMore: boolean;
   loadMoreError: string | null;
 };
 
-export type BoardColumns = Record<JobStatus, BoardColumn>;
+type BoardColumns = Record<JobStatus, BoardColumn>;
 
 function emptyColumn(): BoardColumn {
   return {

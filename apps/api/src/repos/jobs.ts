@@ -23,14 +23,14 @@ type EventRow = {
   occurred_at: Date;
 };
 
-export type ListJobsParams = {
+type ListJobsParams = {
   workerId?: string;
   status?: JobStatus;
   limit: number;
   cursor?: { updatedAt: string; id: string };
 };
 
-export function mapJob(row: JobRow): Job {
+function mapJob(row: JobRow): Job {
   return {
     id: row.id,
     title: row.title,
@@ -43,7 +43,7 @@ export function mapJob(row: JobRow): Job {
   };
 }
 
-export function mapEvent(row: EventRow): JobEvent {
+function mapEvent(row: EventRow): JobEvent {
   return {
     id: row.id,
     jobId: row.job_id,
