@@ -26,7 +26,6 @@ console.log(`[web] proxy /backend → ${apiProxyTarget}`);
 const nextConfig: NextConfig = {
   transpilePackages: ["@field-ops/contracts"],
   outputFileTracingRoot: path.join(__dirname, "../.."),
-  eslint: { ignoreDuringBuilds: true },
   async rewrites() {
     return [
       {

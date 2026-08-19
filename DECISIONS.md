@@ -57,3 +57,9 @@ Cancel is irreversible. The dispatcher board (drop onto Canceled), job detail, a
 **Realtime.** Board polls every 4s as allowed.
 
 **With more time:** persist pending idempotency keys with a TTL; bound event lists if a job could accrue thousands of notes.
+
+## Dependency versions
+
+Next.js 16.3.1 is on the dispatcher app so `sharp` resolves to 0.35.3 (the libvips advisory). React stays at 19.2.3 so it matches Expo. Vitest is 3.2.7 so the Vitest UI advisory is out of range. `uuid` is 11.1.1 because Expo’s `xcode` still asks for deprecated v7.
+
+Expo 57 is already the current SDK. The remaining `npm audit` highs are `image-size` inside Metro; the named patch `2.0.3` was never published, so bumping Expo or React Native cannot clear them (npm’s suggested “fix” is a downgrade to RN 0.72).
