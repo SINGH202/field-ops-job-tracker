@@ -13,7 +13,7 @@ import { Select } from "../components/ui/Select";
 import { useJobBoard } from "../hooks/useJobBoard";
 import { ApiError, listWorkers, transitionJob } from "../lib/api";
 import { cn } from "../lib/cn";
-import { BOARD_STATUSES, STATUS_LABEL } from "../lib/status";
+import { BOARD_STATUSES, STATUS_LABEL, illegalTransitionMessage } from "../lib/status";
 
 type StatusFilter = "ALL" | JobStatus;
 
@@ -56,6 +56,10 @@ export default function BoardPage() {
 
   const moveJob = useCallback(
     async (job: Job, toStatus: JobStatus) => {
+      if (toStatus === "CANCELED") {
+        const confirmed = window.confirm("Cancel this job? This cannot be undone.");
+        if (!confirmed) return;
+      }
       setDropHint(null);
       try {
         await transitionJob(job.id, {
@@ -66,7 +70,11 @@ export default function BoardPage() {
         await refresh(true);
       } catch (err: unknown) {
         setDropHint(
-          err instanceof ApiError ? err.message : "That status change could not be saved.",
+          err instanceof ApiError && err.code === "ILLEGAL_TRANSITION"
+            ? illegalTransitionMessage(job.status, toStatus)
+            : err instanceof ApiError
+              ? err.message
+              : "That status change could not be saved.",
         );
         await refresh(true);
       }
@@ -75,9 +83,7 @@ export default function BoardPage() {
   );
 
   const rejectDrop = useCallback((fromStatus: JobStatus, toStatus: JobStatus) => {
-    setDropHint(
-      `Can't move a ${STATUS_LABEL[fromStatus].toLowerCase()} job to ${STATUS_LABEL[toStatus].toLowerCase()}. Use the next status, or Canceled.`,
-    );
+    setDropHint(illegalTransitionMessage(fromStatus, toStatus));
   }, []);
 
   const visibleStatuses =
@@ -292,6 +298,8 @@ function StatusChip({
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
+      aria-label={`${label}, ${countLabel} jobs`}
       className={cn(
         "inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-3 transition duration-150 ease-out",
         active

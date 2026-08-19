@@ -4,6 +4,7 @@ import {
   DndContext,
   DragEndEvent,
   DragOverlay,
+  KeyboardSensor,
   PointerSensor,
   TouchSensor,
   useDraggable,
@@ -11,19 +12,26 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { Job, JobStatus, isLegalTransition, isTerminal } from "@field-ops/contracts";
+import {
+  Job,
+  JobStatus,
+  isLegalTransition,
+  isTerminal,
+} from "@field-ops/contracts";
 import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useRef, useState } from "react";
 import { cn } from "../../lib/cn";
-import { BOARD_STATUSES } from "../../lib/status";
+import { BOARD_STATUSES, STATUS_LABEL } from "../../lib/status";
 import { JobCard } from "./JobCard";
 
 export type JobDragData = {
   job: Job;
 };
 
-function isJobStatus(value: string | number | undefined | null): value is JobStatus {
+function isJobStatus(
+  value: string | number | undefined | null,
+): value is JobStatus {
   return BOARD_STATUSES.some((status) => status === value);
 }
 
@@ -46,10 +54,12 @@ export function JobBoardDnd({
     useSensor(TouchSensor, {
       activationConstraint: { delay: 250, tolerance: 5 },
     }),
+    useSensor(KeyboardSensor),
   );
 
   async function handleDragEnd(event: DragEndEvent) {
-    const job = (event.active.data.current as JobDragData | undefined)?.job ?? activeJob;
+    const job =
+      (event.active.data.current as JobDragData | undefined)?.job ?? activeJob;
     const overId = event.over?.id;
     setActiveJob(null);
     if (!job || !isJobStatus(overId) || overId === job.status) return;
@@ -68,15 +78,16 @@ export function JobBoardDnd({
         setActiveJob(job ?? null);
       }}
       onDragCancel={() => setActiveJob(null)}
-      onDragEnd={(event) => void handleDragEnd(event)}
-    >
+      onDragEnd={(event) => void handleDragEnd(event)}>
       {children}
       <DragOverlay dropAnimation={null}>
         {activeJob ? (
           <div className="w-64 rotate-1 shadow-lg">
             <JobCard
               job={activeJob}
-              workerName={workerNameById[activeJob.workerId] ?? "Unknown worker"}
+              workerName={
+                workerNameById[activeJob.workerId] ?? "Unknown worker"
+              }
             />
           </div>
         ) : null}
@@ -115,6 +126,9 @@ export function DraggableJobCard({
         !disabled && "cursor-grab active:cursor-grabbing",
         isDragging && "cursor-grabbing opacity-40",
       )}
+      aria-grabbed={isDragging}
+      aria-disabled={disabled || undefined}
+      tabIndex={disabled ? undefined : 0}
       {...(disabled ? {} : listeners)}
       onClick={(event) => {
         if (suppressClickRef.current) {
@@ -125,8 +139,7 @@ export function DraggableJobCard({
         }
         if ((event.target as HTMLElement).closest("a")) return;
         router.push(`/jobs/${job.id}`);
-      }}
-    >
+      }}>
       <JobCard job={job} workerName={workerName} showStatus={showStatus} />
     </div>
   );
@@ -144,17 +157,26 @@ export function DroppableStatus({
   const { setNodeRef, isOver, active } = useDroppable({ id: status });
   const fromJob = (active?.data.current as JobDragData | undefined)?.job;
   const legal =
-    !fromJob || fromJob.status === status || isLegalTransition(fromJob.status, status);
+    !fromJob ||
+    fromJob.status === status ||
+    isLegalTransition(fromJob.status, status);
 
   return (
     <div
       ref={setNodeRef}
+      role="region"
+      aria-label={`${STATUS_LABEL[status]} column`}
       className={cn(
         className,
-        isOver && fromJob && legal && "ring-2 ring-primary ring-offset-2 ring-offset-background",
-        isOver && fromJob && !legal && "ring-2 ring-danger ring-offset-2 ring-offset-background",
-      )}
-    >
+        isOver &&
+          fromJob &&
+          legal &&
+          "ring-2 ring-primary ring-offset-2 ring-offset-background",
+        isOver &&
+          fromJob &&
+          !legal &&
+          "ring-2 ring-danger ring-offset-2 ring-offset-background",
+      )}>
       {children}
     </div>
   );

@@ -17,6 +17,10 @@ export const STATUS_COLORS: Record<JobStatus, { text: string; background: string
   CANCELED: { text: colors.canceled, background: colors.canceledSoft },
 };
 
+export function illegalTransitionMessage(from: JobStatus, to: JobStatus): string {
+  return `Can't move a ${STATUS_LABEL[from].toLowerCase()} job to ${STATUS_LABEL[to].toLowerCase()}. Use the next status, or Canceled.`;
+}
+
 export function formatTimestamp(value: string): string {
   return new Intl.DateTimeFormat("en-US", {
     month: "short",

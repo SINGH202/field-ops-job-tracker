@@ -40,12 +40,16 @@ Failed requests are not stored, so a validation error can be fixed and retried w
 
 `@field-ops/contracts` is the only job/event/request/response shape. The API validates with those Zod schemas at the edge. The Next.js app and Expo worker app import the same types. No hand-copied interfaces.
 
+## Testing
+
+Vitest hits the API against a separate `fieldops_test` database so seed data stays intact. Unit tests cover the lifecycle graph; API tests cover create, list/filter/pagination, illegal transitions, and idempotent retries (one event, not two).
+
 ## What I left out
 
-**Offline / sync.** The Expo app talks to the API while online. An outbox for queued transitions is the next mobile step, not part of this cut.
+**Offline / sync.** The Expo worker app is online-only: pick a seeded worker, see that worker's jobs, advance with an optional note. An outbox is the next cut, not this one.
 
 **Auth.** Out of scope; dispatcher actor is `dispatcher-1`. Workers pick a seeded identity in the mobile app.
 
 **Realtime.** Board polls every 4s as allowed.
 
-**With more time:** persist pending idempotency keys with a TTL and recover crashed in-flight writes; add an outbox on the worker app for offline transitions; bound event lists if a job could accrue thousands of notes.
+**With more time:** persist pending idempotency keys with a TTL; bound event lists if a job could accrue thousands of notes.

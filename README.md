@@ -45,26 +45,15 @@ API: [http://localhost:3001](http://localhost:3001) · health check: `GET /healt
 
 ### Android worker app (Expo)
 
-Keep the API running on port 3001. Start an Android emulator (or plug in a phone with USB debugging), then:
+Keep the API on port 3001, start an Android emulator (or Expo Go on a device), then:
 
 ```bash
 npm run dev:mobile
 ```
 
-In the Expo terminal, press `a` to open the app on Android. The app calls `http://10.0.2.2:3001` (the emulator’s alias for the host). Pick a seeded worker — there is no password — then open a job and advance its status.
+Press `a` in the Expo terminal. The emulator reaches the API at `http://10.0.2.2:3001`. Pick a seeded worker, open a job, and advance its status. If Expo cannot find a device, start an AVD from Android Studio first.
 
-If Expo says no device was found, the emulator is not running. On this Mac, Android Studio’s SDK is typically at `~/Library/Android/sdk` but is not on `PATH` until you export it:
-
-```bash
-export ANDROID_HOME=$HOME/Library/Android/sdk
-export PATH="$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$PATH"
-emulator -list-avds          # e.g. Pixel_7_API_35
-emulator -avd Pixel_7_API_35
-```
-
-Wait until the emulator home screen appears, then run `npm run dev:mobile` again and press `a`.
-
-On a physical device, install Expo Go, copy `apps/mobile/.env.example` to `apps/mobile/.env`, set `EXPO_PUBLIC_API_URL` to `http://<your-lan-ip>:3001`, then scan the QR code from `npm run dev:mobile`.
+On a physical device, set `EXPO_PUBLIC_API_URL` in `apps/mobile/.env` to `http://<lan-ip>:3001`.
 
 ## Tests
 
@@ -110,3 +99,7 @@ apps/api             Express API, SQL migrations, tests
 apps/web             Next.js dispatcher dashboard
 apps/mobile          Expo worker app (Android)
 ```
+
+## Production
+
+API + Postgres: [Render](https://render.com) Blueprint (`render.yaml`). Web: [Vercel](https://vercel.com), root directory `apps/web`, env `API_PROXY_TARGET` = the Render API URL. `NEXT_PUBLIC_API_URL` stays `/backend`.

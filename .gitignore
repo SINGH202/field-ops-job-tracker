@@ -11,3 +11,5 @@ coverage
 
 # Local-only feature checklist (not for the submission)
 LOCAL_PROGRESS.md
+
+.vercel

@@ -1,11 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
-import { Pool } from "pg";
 import { config } from "../config";
+import { createPool } from "./pool";
 
 const MIGRATIONS_DIR = path.join(__dirname, "migrations");
 
-export async function ensureDatabase(connectionString: string): Promise<void> {
+async function ensureDatabase(connectionString: string): Promise<void> {
   const url = new URL(connectionString);
   const database = url.pathname.replace(/^\//, "");
   if (!/^[a-zA-Z0-9_]+$/.test(database)) {
@@ -14,7 +14,7 @@ export async function ensureDatabase(connectionString: string): Promise<void> {
 
   const adminUrl = new URL(connectionString);
   adminUrl.pathname = "/postgres";
-  const admin = new Pool({ connectionString: adminUrl.toString() });
+  const admin = createPool(adminUrl.toString());
   try {
     const existing = await admin.query("SELECT 1 FROM pg_database WHERE datname = $1", [
       database,
@@ -28,8 +28,13 @@ export async function ensureDatabase(connectionString: string): Promise<void> {
 }
 
 export async function migrate(connectionString = config.databaseUrl): Promise<void> {
-  await ensureDatabase(connectionString);
-  const pool = new Pool({ connectionString });
+  if (
+    connectionString.includes("localhost") ||
+    connectionString.includes("127.0.0.1")
+  ) {
+    await ensureDatabase(connectionString);
+  }
+  const pool = createPool(connectionString);
   try {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS schema_migrations (

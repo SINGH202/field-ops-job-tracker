@@ -3,7 +3,7 @@
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
 import type { ComponentPropsWithoutRef, ElementRef } from "react";
-import { forwardRef } from "react";
+import { forwardRef, useId } from "react";
 import { Typography } from "../Typography";
 import { cn } from "../../lib/cn";
 
@@ -143,11 +143,14 @@ export function Select({
   placeholder?: string;
   disabled?: boolean;
 }) {
-  const errorId = error && id ? `${id}-error` : undefined;
+  const generatedId = useId();
+  const selectId = id ?? generatedId;
+  const labelId = `${selectId}-label`;
+  const errorId = error ? `${selectId}-error` : undefined;
 
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
-      <Typography variant="small" className="font-medium text-ink-secondary">
+      <Typography variant="small" id={labelId} className="font-medium text-ink-secondary">
         {label}
       </Typography>
       <SelectRoot
@@ -156,7 +159,8 @@ export function Select({
         disabled={disabled}
       >
         <SelectTrigger
-          id={id}
+          id={selectId}
+          aria-labelledby={labelId}
           aria-invalid={error ? true : undefined}
           aria-describedby={errorId}
           className={error ? "border-danger" : undefined}

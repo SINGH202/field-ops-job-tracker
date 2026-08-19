@@ -14,7 +14,7 @@ import { ErrorState } from "../../../components/ui/EmptyState";
 import { Input } from "../../../components/ui/Input";
 import { Skeleton } from "../../../components/ui/Skeleton";
 import { ApiError, getJob, listWorkers, transitionJob } from "../../../lib/api";
-import { formatTimestamp, nextStatusLabel } from "../../../lib/status";
+import { formatTimestamp, illegalTransitionMessage, nextStatusLabel } from "../../../lib/status";
 
 const DISPATCHER_ID = "dispatcher-1";
 
@@ -25,6 +25,7 @@ export default function JobDetailPage() {
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -64,8 +65,15 @@ export default function JobDetailPage() {
       });
       setJob(updated);
       setNote("");
+      setConfirmingCancel(false);
     } catch (err: unknown) {
-      setError(err instanceof ApiError ? err.message : "That status change could not be saved.");
+      setError(
+        err instanceof ApiError && err.code === "ILLEGAL_TRANSITION"
+          ? illegalTransitionMessage(job.status, toStatus)
+          : err instanceof ApiError
+            ? err.message
+            : "That status change could not be saved.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -145,15 +153,41 @@ export default function JobDetailPage() {
                     {submitting ? "Updating…" : upcomingLabel}
                   </Button>
                 ) : null}
-                <Button
-                  variant="danger"
-                  disabled={submitting}
-                  onClick={() => void advance("CANCELED")}
-                  className="sm:flex-1"
-                >
-                  Cancel job
-                </Button>
+                {confirmingCancel ? (
+                  <>
+                    <Button
+                      variant="danger"
+                      disabled={submitting}
+                      onClick={() => void advance("CANCELED")}
+                      className="sm:flex-1"
+                    >
+                      {submitting ? "Updating…" : "Confirm cancel"}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      disabled={submitting}
+                      onClick={() => setConfirmingCancel(false)}
+                      className="sm:flex-1"
+                    >
+                      Keep job
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    variant="danger"
+                    disabled={submitting}
+                    onClick={() => setConfirmingCancel(true)}
+                    className="sm:flex-1"
+                  >
+                    Cancel job
+                  </Button>
+                )}
               </div>
+              {confirmingCancel ? (
+                <Typography variant="small">
+                  Cancel this job? This cannot be undone.
+                </Typography>
+              ) : null}
             </div>
           ) : null}
 
