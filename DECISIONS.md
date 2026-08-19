@@ -8,20 +8,20 @@ Trade-off: we run a server (mitigated by Docker Compose). A document store would
 
 ## Data model
 
-**`workers`** — `id` (UUID PK), `name`. Looked up when creating a job and when rendering the assign form.
+`workers` — `id` (UUID PK), `name`. Looked up when creating a job and when rendering the assign form.
 
-**`jobs`** — `id`, `title`, `description`, `address`, `worker_id`, `status`, timestamps.
+`jobs` — `id`, `title`, `description`, `address`, `worker_id`, `status`, timestamps.
 
 - `jobs (status, updated_at DESC, id DESC)` — dispatcher column: jobs in one status, cursor-paginated.
 - `jobs (worker_id, status, updated_at DESC, id DESC)` — worker view: that worker's jobs in one status, same cursor.
 
 Cursor is `(updated_at, id)` encoded as base64url JSON. Queries fetch `limit + 1` to decide `nextCursor`. This is not offset pagination and not `SELECT * FROM jobs`.
 
-**`job_events`** — append-only history: `job_id`, `from_status` (null on create), `to_status`, `actor_type`, `actor_id`, optional `note`, `occurred_at`. Index `(job_id, occurred_at, id)` serves `GET /jobs/:id`.
+`job_events` — append-only history: `job_id`, `from_status` (null on create), `to_status`, `actor_type`, `actor_id`, optional `note`, `occurred_at`. Index `(job_id, occurred_at, id)` serves `GET /jobs/:id`.
 
-**`idempotency_keys`** — `key` PK, `request_hash`, stored HTTP status + JSON body. Write endpoints require `Idempotency-Key`.
+`idempotency_keys` — `key` PK, `request_hash`, stored HTTP status + JSON body. Write endpoints require `Idempotency-Key`.
 
-Migrations are ordered SQL files applied once via `schema_migrations`. Schema is driven by the queries above, not by an ORM.
+Migrations are ordered SQL files applied once via `schema_migrations`. Schema is driven by the queries above, not by an ORM.tt
 
 ## Lifecycle and idempotency
 

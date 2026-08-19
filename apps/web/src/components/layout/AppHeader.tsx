@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Typography } from "../Typography";
-import { cn } from "../../lib/cn";
+import { Button } from "../ui/Button";
 
 const NAV = [
   { href: "/", label: "Board" },
@@ -21,7 +21,9 @@ export function AppHeader() {
         <Link href="/" className="shrink-0 rounded-sm py-2">
           <Typography variant="h1">Field Ops</Typography>
         </Link>
-        <nav className="hidden items-center gap-1 md:flex" aria-label="Primary">
+        <nav
+          className="hidden items-center gap-1 md:gap-2.5 md:flex"
+          aria-label="Primary">
           {NAV.map((item) => {
             const active =
               item.href === "/"
@@ -29,60 +31,60 @@ export function AppHeader() {
                 : pathname.startsWith(item.href);
             const isPrimary = item.href === "/jobs/new";
             return (
-              <Link
+              <Button
                 key={item.href}
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "inline-flex min-h-11 items-center rounded-md px-3 transition duration-150 ease-out",
-                  isPrimary
-                    ? "bg-primary text-on-primary hover:bg-primary-hover"
-                    : active
-                      ? "bg-surface-muted text-ink"
-                      : "text-ink-secondary hover:bg-surface-muted hover:text-ink",
-                )}
-              >
-                <Typography variant={isPrimary ? "button" : "link"}>
-                  {item.label}
-                </Typography>
-              </Link>
+                asChild
+                variant={
+                  isPrimary ? "default" : active ? "secondary" : "ghost"
+                }>
+                <Link
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}>
+                  <Typography variant={isPrimary ? "button" : "link"}>
+                    {item.label}
+                  </Typography>
+                </Link>
+              </Button>
             );
           })}
         </nav>
-        <button
+        <Button
           type="button"
-          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border md:hidden"
+          variant="outline"
+          className="md:hidden"
           aria-expanded={open}
           aria-controls="mobile-nav"
-          onClick={() => setOpen((value) => !value)}
-        >
-          <Typography variant="button">{open ? "Close" : "Menu"}</Typography>
-        </button>
+          aria-label={open ? "Close menu" : "Open menu"}
+          onClick={() => setOpen((value) => !value)}>
+          {open ? "Close" : "Menu"}
+        </Button>
       </div>
       {open ? (
         <nav
           id="mobile-nav"
           aria-label="Mobile"
-          className="border-t border-border px-4 py-2 md:hidden"
-        >
+          className="border-t border-border px-4 py-2 md:hidden">
           {NAV.map((item) => {
             const active =
               item.href === "/"
                 ? pathname === "/"
                 : pathname.startsWith(item.href);
+            const isPrimary = item.href === "/jobs/new";
             return (
-              <Link
+              <Button
                 key={item.href}
-                href={item.href}
-                aria-current={active ? "page" : undefined}
-                onClick={() => setOpen(false)}
-                className={cn(
-                  "flex min-h-11 items-center rounded-md px-3",
-                  active ? "bg-surface-muted text-ink" : "text-ink-secondary",
-                )}
-              >
-                <Typography variant="link">{item.label}</Typography>
-              </Link>
+                asChild
+                variant={isPrimary ? "default" : active ? "secondary" : "ghost"}
+                className="mb-1 w-full justify-start">
+                <Link
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  onClick={() => setOpen(false)}>
+                  <Typography variant={isPrimary ? "button" : "link"}>
+                    {item.label}
+                  </Typography>
+                </Link>
+              </Button>
             );
           })}
         </nav>

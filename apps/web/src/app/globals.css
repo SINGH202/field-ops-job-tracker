@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 @source "../**/*.{ts,tsx}";
 
 @theme {
@@ -28,6 +29,20 @@
   --color-canceled: #57534e;
   --color-canceled-soft: #e7e5e4;
 
+  --color-primary-foreground: #f0fdfa;
+  --color-destructive: #b91c1c;
+  --color-destructive-foreground: #fef2f2;
+  --color-secondary: #f3eee4;
+  --color-secondary-foreground: #1c1917;
+  --color-accent: #f3eee4;
+  --color-accent-foreground: #1c1917;
+  --color-popover: #fffdf8;
+  --color-popover-foreground: #1c1917;
+  --color-input: #e4ddd0;
+  --color-ring: #0f766e;
+  --color-muted: #f3eee4;
+  --color-muted-foreground: #78716c;
+
   --shadow-card: 0 1px 2px rgb(28 25 23 / 0.06);
 }
 
@@ -36,6 +51,13 @@ body {
   min-height: 100%;
   background-color: #f4f1ea;
   color: #1c1917;
+}
+
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
 }
 
 :focus-visible {

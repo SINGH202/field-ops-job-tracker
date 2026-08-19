@@ -50,6 +50,7 @@ export function useJobBoard(workerId: string): {
   columns: BoardColumns;
   loading: boolean;
   error: string | null;
+  live: boolean;
   updatedAt: Date | null;
   refresh: (silent?: boolean) => Promise<void>;
   loadMore: (status: JobStatus) => Promise<void>;
@@ -57,6 +58,7 @@ export function useJobBoard(workerId: string): {
   const [columns, setColumns] = useState<BoardColumns>(emptyColumns);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [live, setLive] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
 
   const columnsRef = useRef(columns);
@@ -128,10 +130,11 @@ export function useJobBoard(workerId: string): {
             return next;
           });
           setError(null);
+          setLive(true);
           setUpdatedAt(new Date());
         } catch (err: unknown) {
           if (isAbortError(err) || generationRef.current !== generation) return;
-          setError("We couldn't load the jobs right now.");
+          setLive(false);
         } finally {
           if (pollInFlightEpochRef.current === epoch) {
             pollInFlightEpochRef.current = null;
@@ -175,9 +178,11 @@ export function useJobBoard(workerId: string): {
           return next;
         });
         setError(null);
+        setLive(true);
         setUpdatedAt(new Date());
       } catch (err: unknown) {
         if (isAbortError(err) || generationRef.current !== generation) return;
+        setLive(false);
         setError("We couldn't load the jobs right now.");
       } finally {
         if (generationRef.current === generation && !signal?.aborted) setLoading(false);
@@ -272,7 +277,6 @@ export function useJobBoard(workerId: string): {
     pollEpochRef.current += 1;
     pollInFlightEpochRef.current = null;
     abortLoadMores();
-    setColumns(emptyColumns());
 
     const controller = new AbortController();
     refreshAbortRef.current = controller;
@@ -292,5 +296,5 @@ export function useJobBoard(workerId: string): {
     };
   }, [abortLoadMores, refresh, workerId]);
 
-  return { columns, loading, error, updatedAt, refresh, loadMore };
+  return { columns, loading, error, live, updatedAt, refresh, loadMore };
 }

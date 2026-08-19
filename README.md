@@ -64,7 +64,7 @@ Seeded workers (use these IDs anywhere a worker identity is needed):
 
 The dispatcher UI does not require login. Writes from the web app send `actorId: dispatcher-1`.
 
-Seeded jobs cover every lifecycle state, including a canceled job and a completed job with a full event history.
+Seeded jobs cover every lifecycle state, including a canceled job and a completed job with a full event history. Assigned also includes extra queued jobs (Alex Rivera) so the board's **Load more** control appears — each column page is 20 jobs.
 
 ## API sketch
 
