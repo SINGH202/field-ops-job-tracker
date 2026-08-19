@@ -12,6 +12,7 @@
     "seed": "npm run seed -w @field-ops/api",
     "dev:api": "npm run dev -w @field-ops/api",
     "dev:web": "npm run dev -w @field-ops/web",
+    "dev:mobile": "npm start -w @field-ops/mobile",
     "test": "npm test -w @field-ops/api"
   },
   "engines": {

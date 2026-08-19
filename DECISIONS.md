@@ -21,11 +21,11 @@ Cursor is `(updated_at, id)` encoded as base64url JSON. Queries fetch `limit + 1
 
 `idempotency_keys` — `key` PK, `request_hash`, stored HTTP status + JSON body. Write endpoints require `Idempotency-Key`.
 
-Migrations are ordered SQL files applied once via `schema_migrations`. Schema is driven by the queries above, not by an ORM.tt
+Migrations are ordered SQL files applied once via `schema_migrations`. Schema is driven by the queries above, not by an ORM.
 
 ## Lifecycle and idempotency
 
-Allowed edges live in `@field-ops/contracts` (`allowedTargets()` / `isLegalTransition()`) so the API and web app share one graph. The API wraps that in `assertLegalTransition()` and returns `409 ILLEGAL_TRANSITION`. Same-status retries are no-ops: 200, no extra event. That covers a lost response where the client retries without the original key.
+Allowed edges live in `@field-ops/contracts` (`allowedTargets()` / `isLegalTransition()`) so the API, web app, and worker app share one graph. The API wraps that in `assertLegalTransition()` and returns `409 ILLEGAL_TRANSITION`. Same-status retries are no-ops: 200, no extra event. That covers a lost response where the client retries without the original key.
 
 The write path, in one transaction:
 
@@ -38,14 +38,14 @@ Failed requests are not stored, so a validation error can be fixed and retried w
 
 ## Shared contracts
 
-`@field-ops/contracts` is the only job/event/request/response shape. The API validates with those Zod schemas at the edge. The Next.js app imports the same types. No hand-copied interfaces.
+`@field-ops/contracts` is the only job/event/request/response shape. The API validates with those Zod schemas at the edge. The Next.js app and Expo worker app import the same types. No hand-copied interfaces.
 
 ## What I left out
 
-**Mobile.** The brief marks it optional. A rushed Expo app would have cost time that belongs on tests and the write path.
+**Offline / sync.** The Expo app talks to the API while online. An outbox for queued transitions is the next mobile step, not part of this cut.
 
-**Auth.** Out of scope; dispatcher actor is `dispatcher-1`.
+**Auth.** Out of scope; dispatcher actor is `dispatcher-1`. Workers pick a seeded identity in the mobile app.
 
 **Realtime.** Board polls every 4s as allowed.
 
-**With more time:** persist pending idempotency keys with a TTL and recover crashed in-flight writes; add a worker-facing Expo client with an outbox for offline transitions; bound event lists if a job could accrue thousands of notes.
+**With more time:** persist pending idempotency keys with a TTL and recover crashed in-flight writes; add an outbox on the worker app for offline transitions; bound event lists if a job could accrue thousands of notes.
