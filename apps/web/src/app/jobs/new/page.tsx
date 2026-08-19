@@ -115,33 +115,28 @@ export default function NewJobPage() {
             />
             <Select
               id="workerId"
-              name="workerId"
               label="Assign worker"
-              required
               value={workerId}
-              onChange={(event) => {
-                setWorkerId(event.target.value);
+              onValueChange={(value) => {
+                setWorkerId(value);
                 if (workerError) setWorkerError(undefined);
               }}
+              placeholder={workers.length === 0 ? "Loading workers…" : "Select a worker"}
+              options={workers.map((worker) => ({
+                value: worker.id,
+                label: worker.name,
+              }))}
               error={workerError}
-            >
-              {workers.length === 0 ? <option value="">Loading workers…</option> : null}
-              {workers.map((worker) => (
-                <option key={worker.id} value={worker.id}>
-                  {worker.name}
-                </option>
-              ))}
-            </Select>
+            />
             {error ? (
               <ErrorState title="Could not create job" description={error} />
             ) : null}
             <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
-              <Link
-                href="/"
-                className="inline-flex min-h-11 items-center justify-center rounded-md bg-surface-muted px-4 text-ink transition duration-150 ease-out hover:bg-border"
-              >
-                <Typography variant="button">Cancel</Typography>
-              </Link>
+              <Button asChild variant="secondary">
+                <Link href="/">
+                  <Typography variant="button">Cancel</Typography>
+                </Link>
+              </Button>
               <Button type="submit" disabled={submitting} className="sm:min-w-40">
                 {submitting ? "Creating…" : "Create and assign"}
               </Button>

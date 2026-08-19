@@ -79,6 +79,25 @@ const JOBS = [
   },
 ] as const;
 
+const EXTRA_ASSIGNED_COUNT = 22;
+
+function extraAssignedJobs() {
+  return Array.from({ length: EXTRA_ASSIGNED_COUNT }, (_, index) => {
+    const n = index + 1;
+    return {
+      id: `bbbbbbbb-bbbb-4bbb-8bbb-${String(n).padStart(12, "0")}`,
+      title: `Queued inspection ${String(n).padStart(2, "0")}`,
+      description: "Seeded so the Assigned column has more than one page on the board.",
+      address: `${100 + n} Demo St, Oakland`,
+      workerId: SEED_WORKERS[0].id,
+      status: "ASSIGNED" as const,
+      events: [{ to: "ASSIGNED" as const, actor: "dispatcher-1" }],
+    };
+  });
+}
+
+const SEEDED_JOBS = [...JOBS, ...extraAssignedJobs()];
+
 export async function seed(connectionString = config.databaseUrl): Promise<void> {
   const pool = new Pool({ connectionString });
   try {
@@ -91,7 +110,7 @@ export async function seed(connectionString = config.databaseUrl): Promise<void>
       );
     }
 
-    for (const job of JOBS) {
+    for (const job of SEEDED_JOBS) {
       await pool.query(
         `INSERT INTO jobs (id, title, description, address, worker_id, status)
          VALUES ($1, $2, $3, $4, $5, $6)

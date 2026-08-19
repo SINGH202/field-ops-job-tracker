@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { JobStatus, Worker } from "@field-ops/contracts";
+import { Job, JobStatus, Worker } from "@field-ops/contracts";
+import { DroppableStatus, JobBoardDnd } from "../components/jobs/JobBoardDnd";
 import { JobColumn } from "../components/jobs/JobColumn";
 import { JobList } from "../components/jobs/JobList";
 import { JobStatusBadge } from "../components/jobs/JobStatusBadge";
@@ -10,11 +11,14 @@ import { Typography } from "../components/Typography";
 import { ErrorState } from "../components/ui/EmptyState";
 import { Select } from "../components/ui/Select";
 import { useJobBoard } from "../hooks/useJobBoard";
-import { listWorkers } from "../lib/api";
+import { ApiError, listWorkers, transitionJob } from "../lib/api";
 import { cn } from "../lib/cn";
 import { BOARD_STATUSES, STATUS_LABEL } from "../lib/status";
 
 type StatusFilter = "ALL" | JobStatus;
+
+const ALL_WORKERS = "all";
+const DISPATCHER_ID = "dispatcher-1";
 
 function loadedCountLabel(count: number, hasMore: boolean): string {
   return hasMore ? `${count}+` : String(count);
@@ -25,7 +29,8 @@ export default function BoardPage() {
   const [workerId, setWorkerId] = useState("");
   const [workerError, setWorkerError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
-  const { columns, loading, error, updatedAt, refresh, loadMore } = useJobBoard(workerId);
+  const { columns, loading, error, live, updatedAt, refresh, loadMore } = useJobBoard(workerId);
+  const [dropHint, setDropHint] = useState<string | null>(null);
 
   const workerNameById = useMemo(
     () => Object.fromEntries(workers.map((worker) => [worker.id, worker.name])),
@@ -49,6 +54,32 @@ export default function BoardPage() {
     return () => controller.abort();
   }, [loadWorkers]);
 
+  const moveJob = useCallback(
+    async (job: Job, toStatus: JobStatus) => {
+      setDropHint(null);
+      try {
+        await transitionJob(job.id, {
+          toStatus,
+          actorType: "DISPATCHER",
+          actorId: DISPATCHER_ID,
+        });
+        await refresh(true);
+      } catch (err: unknown) {
+        setDropHint(
+          err instanceof ApiError ? err.message : "That status change could not be saved.",
+        );
+        await refresh(true);
+      }
+    },
+    [refresh],
+  );
+
+  const rejectDrop = useCallback((fromStatus: JobStatus, toStatus: JobStatus) => {
+    setDropHint(
+      `Can't move a ${STATUS_LABEL[fromStatus].toLowerCase()} job to ${STATUS_LABEL[toStatus].toLowerCase()}. Use the next status, or Canceled.`,
+    );
+  }, []);
+
   const visibleStatuses =
     statusFilter === "ALL" ? BOARD_STATUSES : BOARD_STATUSES.filter((status) => status === statusFilter);
   const filtered = Boolean(workerId);
@@ -62,39 +93,22 @@ export default function BoardPage() {
         <div className="min-w-0">
           <Typography variant="h2">Jobs</Typography>
           <Typography variant="small" className="mt-1">
-            Live board of every job by status. Filter by worker to inspect a single route.
+            Live board of every job by status. Drag a job to the next step, or to Canceled.
           </Typography>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
           <div className="sm:w-56">
             <Select
               label="Worker"
-              value={workerId}
-              onChange={(event) => setWorkerId(event.target.value)}
-            >
-              <option value="">All workers</option>
-              {workers.map((worker) => (
-                <option key={worker.id} value={worker.id}>
-                  {worker.name}
-                </option>
-              ))}
-            </Select>
+              value={workerId || ALL_WORKERS}
+              onValueChange={(value) => setWorkerId(value === ALL_WORKERS ? "" : value)}
+              options={[
+                { value: ALL_WORKERS, label: "All workers" },
+                ...workers.map((worker) => ({ value: worker.id, label: worker.name })),
+              ]}
+            />
           </div>
-          <div
-            className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border bg-surface px-3"
-            aria-live="polite"
-          >
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-completed opacity-60 motion-reduce:hidden" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-completed" />
-            </span>
-            <Typography variant="small" className="font-medium text-ink-secondary">
-              Live
-              {updatedAt
-                ? ` · ${updatedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`
-                : ""}
-            </Typography>
-          </div>
+          <LiveStatus live={live} updatedAt={updatedAt} onRetry={() => void refresh()} />
         </div>
       </div>
 
@@ -111,6 +125,19 @@ export default function BoardPage() {
         </div>
       ) : null}
 
+      {dropHint ? (
+        <div className="mt-4" role="status">
+          <Typography variant="small" className="text-danger">
+            {dropHint}
+          </Typography>
+        </div>
+      ) : null}
+
+      <JobBoardDnd
+        workerNameById={workerNameById}
+        onMove={moveJob}
+        onRejectedDrop={rejectDrop}
+      >
       <div className="mt-4 lg:hidden">
         <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-2">
           <StatusChip
@@ -136,7 +163,8 @@ export default function BoardPage() {
           {visibleStatuses.map((status) => {
             const column = columns[status];
             return (
-              <section key={status}>
+              <DroppableStatus key={status} status={status} className="rounded-lg">
+              <section>
                 <div className="mb-2 flex items-center justify-between">
                   <JobStatusBadge status={status} />
                   <Typography variant="small" className="font-semibold text-ink">
@@ -154,15 +182,17 @@ export default function BoardPage() {
                     loadingMore={column.loadingMore}
                     onLoadMore={() => void loadMore(status)}
                     loadMoreError={column.loadMoreError}
+                    showStatus
                   />
                 </div>
               </section>
+              </DroppableStatus>
             );
           })}
         </div>
       </div>
 
-      <div className="mt-4 hidden grid-cols-5 gap-3 lg:grid">
+      <div className="mt-4 hidden h-[calc(100dvh-11.5rem)] min-h-0 grid-cols-5 gap-3 lg:grid">
         {BOARD_STATUSES.map((status) => {
           const column = columns[status];
           return (
@@ -181,7 +211,69 @@ export default function BoardPage() {
           );
         })}
       </div>
+      </JobBoardDnd>
     </PageShell>
+  );
+}
+
+function liveLabel(live: boolean, updatedAt: Date | null): string {
+  const time = updatedAt
+    ? updatedAt.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+    : null;
+  if (live) return time ? `Live · ${time}` : "Live";
+  if (time) return `Offline · last ${time}`;
+  return "Connecting";
+}
+
+function LiveStatus({
+  live,
+  updatedAt,
+  onRetry,
+}: {
+  live: boolean;
+  updatedAt: Date | null;
+  onRetry: () => void;
+}) {
+  const canRetry = !live && updatedAt !== null;
+  const label = liveLabel(live, updatedAt);
+  const dotClass = live ? "bg-completed" : updatedAt ? "bg-danger" : "bg-ink-muted";
+  const className = cn(
+    "inline-flex min-h-11 items-center gap-2 rounded-md border border-border bg-surface px-3",
+    canRetry && "hover:bg-surface-muted",
+  );
+
+  const contents = (
+    <>
+      <span className="relative flex h-2 w-2" aria-hidden="true">
+        {live ? (
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-completed opacity-60 motion-reduce:hidden" />
+        ) : null}
+        <span className={cn("relative inline-flex h-2 w-2 rounded-full", dotClass)} />
+      </span>
+      <Typography variant="small" className="font-medium text-ink-secondary">
+        {label}
+      </Typography>
+    </>
+  );
+
+  if (canRetry) {
+    return (
+      <button
+        type="button"
+        className={className}
+        aria-live="polite"
+        aria-label="Board is offline. Retry now."
+        onClick={onRetry}
+      >
+        {contents}
+      </button>
+    );
+  }
+
+  return (
+    <div className={className} aria-live="polite">
+      {contents}
+    </div>
   );
 }
 

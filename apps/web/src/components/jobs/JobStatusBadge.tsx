@@ -8,7 +8,7 @@ export function JobStatusBadge({ status }: { status: JobStatus }) {
     <Typography
       variant="small"
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 font-semibold",
+        "inline-flex max-w-full shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 font-semibold",
         STATUS_BADGE_CLASS[status],
       )}
     >
