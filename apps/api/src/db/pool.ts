@@ -3,9 +3,26 @@ import { config } from "../config";
 
 let pool: Pool | undefined;
 
+function sslFor(connectionString: string) {
+  if (
+    connectionString.includes("localhost") ||
+    connectionString.includes("127.0.0.1")
+  ) {
+    return undefined;
+  }
+  return { rejectUnauthorized: false };
+}
+
+export function createPool(connectionString: string): Pool {
+  return new Pool({
+    connectionString,
+    ssl: sslFor(connectionString),
+  });
+}
+
 export function getPool(connectionString = config.databaseUrl): Pool {
   if (!pool) {
-    pool = new Pool({ connectionString });
+    pool = createPool(connectionString);
   }
   return pool;
 }

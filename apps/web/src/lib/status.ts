@@ -30,6 +30,10 @@ export function shortJobId(id: string): string {
   return id.slice(0, 8).toUpperCase();
 }
 
+export function illegalTransitionMessage(from: JobStatus, to: JobStatus): string {
+  return `Can't move a ${STATUS_LABEL[from].toLowerCase()} job to ${STATUS_LABEL[to].toLowerCase()}. Use the next status, or Canceled.`;
+}
+
 export function formatTimestamp(value: string): string {
   return new Intl.DateTimeFormat("en-US", {
     month: "short",

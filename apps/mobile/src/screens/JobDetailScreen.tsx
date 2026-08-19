@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,7 +14,7 @@ import { ApiError, getJob, isAbortError, transitionJob } from "../api";
 import { Button } from "../components/Button";
 import { Screen } from "../components/Screen";
 import { StatusBadge } from "../components/StatusBadge";
-import { formatTimestamp, nextStatusLabel } from "../status";
+import { formatTimestamp, illegalTransitionMessage, nextStatusLabel } from "../status";
 import { colors } from "../theme";
 
 export function JobDetailScreen({
@@ -64,7 +65,13 @@ export function JobDetailScreen({
       setJob(updated);
       setNote("");
     } catch (err: unknown) {
-      setError(err instanceof ApiError ? err.message : "That status change could not be saved.");
+      setError(
+        err instanceof ApiError && err.code === "ILLEGAL_TRANSITION"
+          ? illegalTransitionMessage(job.status, toStatus)
+          : err instanceof ApiError
+            ? err.message
+            : "That status change could not be saved.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -135,7 +142,16 @@ export function JobDetailScreen({
                 label="Cancel job"
                 variant="danger"
                 disabled={submitting}
-                onPress={() => void advance("CANCELED")}
+                onPress={() => {
+                  Alert.alert("Cancel this job?", "This cannot be undone.", [
+                    { text: "Keep job", style: "cancel" },
+                    {
+                      text: "Cancel job",
+                      style: "destructive",
+                      onPress: () => void advance("CANCELED"),
+                    },
+                  ]);
+                }}
               />
             </View>
           ) : null}

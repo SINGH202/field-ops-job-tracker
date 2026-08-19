@@ -29,7 +29,7 @@ export class IllegalTransitionError extends AppError {
     super(
       409,
       "ILLEGAL_TRANSITION",
-      `Cannot transition a job from ${from} to ${to}`,
+      `Cannot move a job from ${from} to ${to}`,
       { from, to },
     );
   }

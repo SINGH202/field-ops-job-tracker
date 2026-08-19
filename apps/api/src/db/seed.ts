@@ -1,5 +1,5 @@
-import { Pool } from "pg";
 import { config } from "../config";
+import { createPool } from "./pool";
 
 export const SEED_WORKERS = [
   { id: "11111111-1111-4111-8111-111111111111", name: "Alex Rivera" },
@@ -99,7 +99,7 @@ function extraAssignedJobs() {
 const SEEDED_JOBS = [...JOBS, ...extraAssignedJobs()];
 
 export async function seed(connectionString = config.databaseUrl): Promise<void> {
-  const pool = new Pool({ connectionString });
+  const pool = createPool(connectionString);
   try {
     for (const worker of SEED_WORKERS) {
       await pool.query(
