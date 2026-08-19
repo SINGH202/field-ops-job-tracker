@@ -6,7 +6,7 @@ Live dispatcher board: [https://field-ops-job-tracker-web.vercel.app/](https://f
 
 ## Prerequisites
 
-- Node.js 20+
+- Node.js 20.9+
 - npm 10+ (ships with Node 20)
 - Docker with Compose v2
 - For the worker app: Android Studio emulator (or a device with Expo Go) and the API running on port 3001
