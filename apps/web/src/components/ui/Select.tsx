@@ -119,7 +119,7 @@ const SelectItem = forwardRef<
 ));
 SelectItem.displayName = SelectPrimitive.Item.displayName;
 
-export type SelectOption = {
+type SelectOption = {
   value: string;
   label: string;
 };

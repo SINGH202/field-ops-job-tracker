@@ -25,7 +25,7 @@ import { cn } from "../../lib/cn";
 import { BOARD_STATUSES, STATUS_LABEL } from "../../lib/status";
 import { JobCard } from "./JobCard";
 
-export type JobDragData = {
+type JobDragData = {
   job: Job;
 };
 

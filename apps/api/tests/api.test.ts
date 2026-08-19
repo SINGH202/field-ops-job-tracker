@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import request from "supertest";
 import { describe, expect, it } from "vitest";
-import { JobWithEvents } from "@field-ops/contracts";
+import { HealthResponseSchema, JobWithEvents } from "@field-ops/contracts";
 import { createApp } from "../src/app";
 import { UNKNOWN_WORKER, WORKER_A, WORKER_B } from "./setup";
 
@@ -294,6 +294,14 @@ describe("POST /jobs/:id/transitions", () => {
     expect(retry.status).toBe(200);
     expect(retry.body.status).toBe("EN_ROUTE");
     expect(retry.body.events.filter((event: { toStatus: string }) => event.toStatus === "EN_ROUTE")).toHaveLength(1);
+  });
+});
+
+describe("GET /health", () => {
+  it("reports that the process is up", async () => {
+    const res = await request(app).get("/health");
+    expect(res.status).toBe(200);
+    expect(HealthResponseSchema.parse(res.body)).toEqual({ ok: true });
   });
 });
 

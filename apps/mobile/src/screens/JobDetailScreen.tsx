@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,6 +11,7 @@ import {
 import { forwardTarget, JobStatus, JobWithEvents, Worker } from "@field-ops/contracts";
 import { ApiError, getJob, isAbortError, transitionJob } from "../api";
 import { Button } from "../components/Button";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { Screen } from "../components/Screen";
 import { StatusBadge } from "../components/StatusBadge";
 import { formatTimestamp, illegalTransitionMessage, nextStatusLabel } from "../status";
@@ -30,6 +30,7 @@ export function JobDetailScreen({
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
 
   const load = useCallback(
     async (signal?: AbortSignal) => {
@@ -64,6 +65,7 @@ export function JobDetailScreen({
       });
       setJob(updated);
       setNote("");
+      setConfirmingCancel(false);
     } catch (err: unknown) {
       setError(
         err instanceof ApiError && err.code === "ILLEGAL_TRANSITION"
@@ -142,16 +144,7 @@ export function JobDetailScreen({
                 label="Cancel job"
                 variant="danger"
                 disabled={submitting}
-                onPress={() => {
-                  Alert.alert("Cancel this job?", "This cannot be undone.", [
-                    { text: "Keep job", style: "cancel" },
-                    {
-                      text: "Cancel job",
-                      style: "destructive",
-                      onPress: () => void advance("CANCELED"),
-                    },
-                  ]);
-                }}
+                onPress={() => setConfirmingCancel(true)}
               />
             </View>
           ) : null}
@@ -177,6 +170,16 @@ export function JobDetailScreen({
           )}
         </View>
       </ScrollView>
+      <ConfirmDialog
+        open={confirmingCancel}
+        title="Cancel this job?"
+        description={`${job.title} will move to Canceled. This cannot be undone.`}
+        busy={submitting}
+        onConfirm={() => void advance("CANCELED")}
+        onCancel={() => {
+          if (!submitting) setConfirmingCancel(false);
+        }}
+      />
     </Screen>
   );
 }

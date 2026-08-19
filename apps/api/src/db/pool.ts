@@ -3,10 +3,21 @@ import { config } from "../config";
 
 let pool: Pool | undefined;
 
-function sslFor(connectionString: string) {
+export function sslForDatabaseUrl(connectionString: string) {
+  const url = new URL(connectionString);
+  const sslmode = url.searchParams.get("sslmode");
+  if (sslmode === "disable") return undefined;
+  if (sslmode === "require" || sslmode === "verify-ca" || sslmode === "verify-full") {
+    return { rejectUnauthorized: sslmode !== "require" };
+  }
+
+  const host = url.hostname;
+  // Local Docker Compose uses hostnames like `postgres` (no SSL). Cloud URLs have a dot.
   if (
-    connectionString.includes("localhost") ||
-    connectionString.includes("127.0.0.1")
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "::1" ||
+    !host.includes(".")
   ) {
     return undefined;
   }
@@ -16,7 +27,7 @@ function sslFor(connectionString: string) {
 export function createPool(connectionString: string): Pool {
   return new Pool({
     connectionString,
-    ssl: sslFor(connectionString),
+    ssl: sslForDatabaseUrl(connectionString),
   });
 }
 

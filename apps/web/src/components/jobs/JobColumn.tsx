@@ -5,7 +5,7 @@ import { DroppableStatus } from "./JobBoardDnd";
 import { JobList, JobListProps } from "./JobList";
 import { JobStatusBadge } from "./JobStatusBadge";
 
-export type JobColumnProps = JobListProps;
+type JobColumnProps = JobListProps;
 
 export function JobColumn({
   status,
